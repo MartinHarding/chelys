@@ -1,0 +1,94 @@
+#!/usr/bin/env python
+
+"""Display IP addresses assigned to various network interfaces.
+
+Usage:
+  ip
+  ip (-i | --interface) <NAME>
+  ip (-h | --help)
+  ip --version
+
+Options:
+  -h --help                 Show this screen.
+  --version                 Show version.
+  -i --interface INTERFACE  Show specific interface address.
+  -a --all                  Show all interface addresses.
+  -v --verbose              Display additional information for interface.
+
+"""
+
+# from docopt import docopt
+
+# if __name__ == '__main__':
+#     arguments = docopt(__doc__, version='ip 1.0')
+#     print(arguments)
+
+import argparse
+import netifaces
+
+from os import name
+from os import popen
+
+description="List IP addresses for interfaces."
+argparser = argparse.ArgumentParser(description=description)
+argparser.add_argument("-l, --list",
+                       dest="list",
+                       action="store_true",
+                       help="list all interfaces")
+argparser.add_argument("-i, --interfaces",
+                       dest="interfaces",
+                       help="list a subset of interfaces")
+argparser.add_argument("-v, --verbose",
+                       dest="verbose",
+                       action="store_true",
+                       help="show labels for each interface")
+options = argparser.parse_args()
+
+# Default to show just wan address
+interfaces = ['wan']
+if options.interfaces and options.list:
+    print("Error: you may not use the '-i' and '-l' options together")
+elif options.list:
+    interfaces = ['wan']+netifaces.interfaces()
+elif options.interfaces:
+    interfaces = options.interfaces.split(' ')
+
+# Loop through passed interfaces
+for interface in interfaces:
+
+    # don't show localhost address
+    if interface == 'lo0':
+        continue
+
+    # Get WAN address
+    if interface == 'wan':
+        if name == 'posix':
+            wan = popen(
+                "dig +short myip.opendns.com @resolver1.opendns.com").read().strip()
+        else:
+            # Windows doesn't have dig
+            import urllib2
+            req = urllib2.Request('https://ifconfig.co/ip')
+            response = urllib2.urlopen(req)
+            wan = response.read().strip()
+
+        # Print and exit
+        if options.verbose:
+            print("wan: %s" % (wan))
+        else:
+            print(wan)
+
+    # Get other interface addresss info
+    else:
+        try:
+            interfaceInfo = netifaces.ifaddresses(interface)
+            if netifaces.AF_INET in interfaceInfo:
+                for i in interfaceInfo[netifaces.AF_INET]:
+                    if 'addr' in i:
+                        if options.verbose:
+                            print("%s: %s" % (interface, i['addr']))
+                        else:
+                            print(i['addr'])
+
+        except Exception as e:
+            print("Error: (%s) %s" % (interface, e))
