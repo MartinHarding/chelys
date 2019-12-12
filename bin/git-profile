@@ -1,0 +1,98 @@
+#!/usr/bin/env zsh
+
+# Manage git configurations in a profile-like way
+#
+# Usage:
+#     git profile list
+#     git profile use work
+#     git profile save default
+#     git profile backup
+#
+# Options:
+#     help|-h         show this help menu
+#     list|-l         list available profiles
+#     use|-u <name>   switch ~/.gitconfig to a given profile name
+#     save|-s <name>  save/overwrite profile with the current ~/.gitconfig
+#     backup|-b       create a backup of the current ~/.gitconfig"
+
+[[ $COLOR_CLEAR ]] || COLOR_CLEAR='\e[0m'
+[[ $COLOR_WARN ]] || COLOR_WARN='\e[1;33mWARNING:'
+[[ $COLOR_ERROR ]] || COLOR_ERROR='\e[1;31mERROR:'
+
+git_profile() {
+    GIT_PROFILE_SCRIPT_PATH="$0"
+
+    $(git_profile_init)
+
+    local _cmd=$1
+    [[ $_cmd ]] && shift
+
+    case $_cmd in
+        'use'|d) git_profile_use $@;;
+        'list'|r) git_profile_list;;
+        'save'|u) git_profile;;
+        'help'|'--help'|-h|h|'') git_profile_help $@;;
+        *) echo "$COLOR_ERROR $_cmd is not a valid command $COLOR_CLEAR" && return 1;;
+    esac
+}
+
+git_profile_init() {
+    if ! [ -d ~/.git_profiles ]; then
+        echo "~/.git_profiles directory not found, creating..."
+        mkdir -p ~/.git_profiles
+        mkdir -p ~/.git_profiles/backups
+        if [ -f ~/.gitconfig ]; then
+            echo "Saving ~/.gitconfig to default. Run 'git profile help' for usage"
+            cp ~/.gitconfig ~/.git_profiles/default.gitconfig
+        fi
+    fi
+}
+
+git_profile_help() {
+  sed '/^#\!.*/d' $GIT_PROFILE_SCRIPT_PATH | sed '/^$/d' | sed -n '/^[^#]*$/!p;//q' | sed 's/^# //g;s/^#//g'
+}
+
+git_profile_backup() {
+    local timestamp=`date +%s`
+    echo "Backing up current config to ~/.git_profiles/backups/$timestamp"
+    cp ~/.gitconfig ~/.git_profiles/backups/$timestamp
+}
+
+git_profile_list() {
+    ls ~/.git_profiles | grep '.gitconfig' | sed 's/\.gitconfig//g'
+}
+
+git_profile_use() {
+    profile_name="$1"
+    if [[ ! "$profile_name" || "$profile_name" == "use" ]]; then
+        echo "Must pass in a profile name. Use 'git profile list' to see available profiles."
+        exit 1
+    fi
+    profile_path=~/.git_profiles/$profile_name.gitconfig
+    if [ -f $profile_path ]; then
+        backup
+        echo "Switching ~/.gitconfig to profile '$profile_name'"
+        cp -f $profile_path ~/.gitconfig
+    else
+        echo "Path $profile_path not found. Use 'git profile list' to see available profiles."
+        exit 1
+    fi
+}
+
+git_profile_save() {
+    profile_name="$1"
+    if [[ ! "$profile_name" || "$profile_name" == "save" ]]; then
+        echo "Must pass in a profile name. Use 'git profile list' to see available profiles."
+        exit 1
+    fi
+    profile_path=~/.git_profiles/$profile_name.gitconfig
+    timestamp=`date +%s`
+    if [ -f $profile_path ]; then
+        echo "Backing up $profile_path to ~/.git_profiles/backups/$timestamp"
+        mv $profile_path ~/.git_profiles/backups/$timestamp
+    fi
+    echo "Saving current git config as '$profile_name'"
+    cp -f ~/.gitconfig $profile_path
+}
+
+git_profile $@
