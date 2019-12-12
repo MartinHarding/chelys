@@ -1,0 +1,31 @@
+#!/usr/bin/env zsh
+
+# Reset or migrate a Rails database using rake. Pass dev or test after the command to choose an environment.
+#
+# Usage:
+#     rdb <COMMAND> <ENVIRONMENT>
+
+rdb() {
+    local _command _environment
+    while [ ! -z $1 ]; do
+        case $1 in
+            "reset") _command='rake db:drop db:create db:schema:load';;
+            "migrate") _command='rake db:migrate';;
+            "dev") _environment='development';;
+            "test") _environment='test';;
+            *) echo "'$1' is not a valid argument" && return 1;;
+        esac
+        shift
+    done
+    ! [[ "$_command" ]] && echo "Pass a command ('reset', 'migrate')" && return 1
+    ! [[ "$_environment" ]] && echo "Pass an environemnt ('test', 'dev')" && return 1
+
+    if [[ `echo "$_command" | grep 'db:drop'` ]] && [[ $_environment == 'development' ]]; then
+        _command="$_command db:seed"
+    fi
+    _final="RAILS_ENV=$_environment bundle exec $_command"
+    echo "$_final"
+    eval $_final
+}
+
+rdb $@
