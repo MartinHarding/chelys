@@ -1,0 +1,31 @@
+#!/usr/bin/env zsh
+
+# Open or add files directly to .gitignore of the current repository. Can be
+# run in sub-directories and will automatically add a relative path to the
+# repository root if. Passing no arguments will open the .gitignore file in
+# the editor specified by the $EDITOR environment variable.
+#
+# Usage:
+#     git ignore
+#     git ignore <FILES...>
+
+git_ignore() {
+    local repo=$(git rev-parse --show-toplevel)
+    local gitignore="$repo/.gitignore"
+    local workdir=$(pwd)
+    local file
+    local arg
+
+    # If no args just open in editor
+    [[ -z $@ ]] && $EDTIOR $gitignore && return 0
+
+    for file in $@; do
+        # If file is in working directory, add as path relative to repo root
+        [[ -f $file ]] && file=$(echo "$workdir/$file" | sed 's,'$repo/',,g')
+
+        echo "$file" >> $gitignore
+        echo "Added '$file' to $gitignore"
+    done
+}
+
+git_ignore $@
