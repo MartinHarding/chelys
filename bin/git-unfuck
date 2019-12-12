@@ -1,0 +1,41 @@
+#!/usr/bin/env zsh
+
+# Unfuck things with a git repo
+#
+# Usage:
+#     git unfuck submodules
+#
+# Options:
+#     help|-h         show this help menu
+#     submodules|-s   forgets all submodules as if you cloned the repo without submodule init
+
+[[ $COLOR_CLEAR ]] || COLOR_CLEAR='\e[0m'
+[[ $COLOR_WARN ]] || COLOR_WARN='\e[1;33mWARNING:'
+[[ $COLOR_ERROR ]] || COLOR_ERROR='\e[1;31mERROR:'
+
+GIT_UNFUCK_SCRIPT_PATH="$0"
+
+git_unfuck() {
+    local _cmd=$1
+    [[ $_cmd ]] && shift
+
+    case $_cmd in
+        'submodules'|d) git_unfuck_submodules $@;;
+        'help'|'--help'|-h|h|'') git_unfuck_help $@;;
+        *) echo "$COLOR_ERROR $_cmd is not a valid command $COLOR_CLEAR" && return 1;;
+    esac
+}
+
+git_unfuck_help() {
+  sed '/^#\!.*/d' $GIT_UNFUCK_SCRIPT_PATH | sed '/^$/d' | sed -n '/^[^#]*$/!p;//q' | sed 's/^# //g;s/^#//g'
+}
+
+git_unfuck_submodules() {
+    local _submodules
+    _submodules=$(git config --file .gitmodules --get-regexp path | awk '{print $2}')
+    for _submodule in $_submodules; do
+        git submodule deinit -f -- $_submodule
+    done
+}
+
+git_unfuck $@
