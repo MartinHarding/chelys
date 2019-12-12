@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Gets the current day
+
+date +%j
