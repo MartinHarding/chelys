@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+
+# A simple bash script to run git pull in a directory of repos. Automatically
+# detects whether each directory is a git repository, and can optionally
+# checkout a branch before pulling using the `-b <branch-name>` argument.
+
+# Save original working directory
+_ORIGINAL_PWD="$PWD"
+
+# Parse args
+while getopts ":b:" opt; do
+  case $opt in
+    b) SYNC_BRANCH=$OPTARG;;
+    \?) echo "Invalid option: -$OPTARG" >&2;;
+  esac
+done
+
+# Find all git repos in the current directory or pull the current directory
+REPOS_DIR="$PWD"
+if [ -d "$REPOS_DIR/.git" ]; then
+  REPOS="$REPOS_DIR"
+else
+  REPOS="`find $REPOS_DIR -name .git -maxdepth 2 -type d`"
+fi
+
+# Sort repo list alphabetically
+REPOS=`echo "$REPOS" | sort --ignore-case`
+
+# CD into each directory, optionally checkout a branch, and pull
+for REPO in $REPOS; do
+  # git branch --short
+  echo "Pulling `basename $(dirname $REPO)`"
+  cd `dirname $REPO`
+  [ $SYNC_BRANCH ] && git checkout $SYNC_BRANCH
+  __pull_results=`git pull 2>&1`
+  if [[ $? != 0 ]]; then
+    echo "Error: $REPO could not be pulled"
+    printf "$__pull_results"
+    exit 1
+  elif [[ "$__pull_results" != "Already up-to-date." ]]; then
+    printf "$__pull_results"
+  fi
+done
+
+# Go back to the original directory
+cd $_ORIGINAL_PWD
