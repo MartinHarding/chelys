@@ -19,9 +19,9 @@
 [[ $COLOR_WARN ]] || COLOR_WARN='\e[1;33mWARNING:'
 [[ $COLOR_ERROR ]] || COLOR_ERROR='\e[1;31mERROR:'
 
-git_profile() {
-    GIT_PROFILE_SCRIPT_PATH="$0"
+GIT_PROFILE_SCRIPT_PATH="$0"
 
+git_profile() {
     $(git_profile_init)
 
     local _cmd=$1
