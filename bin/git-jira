@@ -1,0 +1,52 @@
+#!/usr/bin/env zsh
+
+# Shortcuts for getting to Jira tickets from the current branch based on the branch name and directory the repo is in.
+#
+# Usage:
+#     git jira url
+#     git jira open
+#
+# Options:
+#     help|-h   show this help menu
+#     url       url the current branch's predicted Jira URL
+#     open      open the current branch's predicted Jira URL
+
+[[ $COLOR_CLEAR ]] || COLOR_CLEAR='\e[0m'
+[[ $COLOR_WARN ]] || COLOR_WARN='\e[1;33mWARNING:'
+[[ $COLOR_ERROR ]] || COLOR_ERROR='\e[1;31mERROR:'
+
+GIT_JIRA_SCRIPT_PATH="$0"
+
+git_jira() {
+    local _cmd=$1
+    [[ $_cmd ]] && shift
+
+    case $_cmd in
+        'url'|d) git_jira_url $@;;
+        'open'|d) git_jira_open $@;;
+        'help'|'--help'|-h|h|'') git_jira_help $@;;
+        *) echo "$COLOR_ERROR $_cmd is not a valid command $COLOR_CLEAR" && return 1;;
+    esac
+}
+
+git_jira_help() {
+    sed '/^#\!.*/d' $GIT_JIRA_SCRIPT_PATH | sed '/^$/d' | sed -n '/^[^#]*$/!p;//q' | sed 's/^# //g;s/^#//g'
+}
+
+git_jira_ticket_id() {
+    git rev-parse --abbrev-ref HEAD | cut -d'/' -f1
+}
+
+git_jira_organization_name() {
+    basename $(dirname "`git rev-parse --show-toplevel`") | tr '[:upper:]' '[:lower:]'
+}
+
+git_jira_url() {
+    echo "https://$(git_jira_organization_name).atlassian.net/browse/$(git_jira_ticket_id)"
+}
+
+git_jira_open() {
+    open "$(git_jira_url)"
+}
+
+git_jira $@
