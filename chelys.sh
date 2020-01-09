@@ -59,7 +59,7 @@ chelys_help() {
         _file_path="$CHELYS_PATH/bin/$_cmd"
     else
         printf "\e[1;32m"
-        cat turtle.txt
+        cat "$CHELYS_PATH/turtle.txt"
         echo $COLOR_CLEAR
         _file_path="$CHELYS_PATH/chelys.sh"
     fi
